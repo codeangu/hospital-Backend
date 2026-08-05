@@ -115,7 +115,8 @@ TestRouter
     const { getHospitalId } = authenticate;
     const hospitalId = getHospitalId(req.user);
     const filter = { _id: req.params.productId, hospitalId };
-    if (req.userScope) Object.assign(filter, req.userScope);
+    // Lab staff can update any test in their hospital (not just ones they personally created).
+    if (req.userScope && req.user.role !== 'LAB') Object.assign(filter, req.userScope);
     const { user: _u, hospitalId: _h, ...safeBody } = req.body;
     Test.findOneAndUpdate(
       filter,
