@@ -26,7 +26,16 @@ visitRouter
   })
   .get(cors.cors, verifyUser, (req, res, next) => {
     const { bypass, cap } = getQueryLimitCap(req);
+    // Lab staff only need to see visits sent to their own lab for testing,
+    // not the visits/patients they personally created (they create none).
+    if (req.user && req.user.role === 'LAB') {
+      req.userScope = null;
+    }
     let find = queryBuilder(req);
+    if (req.user && req.user.role === 'LAB') {
+      find.checkupStatus = 'AWAITING_TEST';
+      find['testsSuggested.category'] = req.user.name;
+    }
     try {
       console.log("find inside get visits: ", find);
       let query = Visit.find(find).populate('patient');
