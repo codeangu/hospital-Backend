@@ -22,6 +22,11 @@ TestRouter
     res.sendStatus(200);
   })
   .get(cors.cors, (req, res, next) => {
+    // Lab staff need visibility into all of their hospital's tests (to filter by their own lab name),
+    // not just tests they personally created.
+    if (req.user && req.user.role === 'LAB') {
+      req.userScope = null;
+    }
     let find = queryBuilder(req)
      try {
     console.log("find inside get patients: ", find);
