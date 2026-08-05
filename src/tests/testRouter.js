@@ -22,11 +22,9 @@ TestRouter
     res.sendStatus(200);
   })
   .get(cors.cors, (req, res, next) => {
-    // Lab staff need visibility into all of their hospital's tests (to filter by their own lab name),
-    // not just tests they personally created.
-    if (req.user && req.user.role === 'LAB') {
-      req.userScope = null;
-    }
+    // Tests are a shared hospital-wide catalog (not per-creator data), so every
+    // role sees all of their hospital's tests, not just ones they personally created.
+    req.userScope = null;
     let find = queryBuilder(req)
      try {
     console.log("find inside get patients: ", find);
@@ -90,7 +88,6 @@ TestRouter
     const { getHospitalId } = authenticate;
     const hospitalId = getHospitalId(req.user);
     const filter = { _id: req.params.productId, hospitalId };
-    if (req.userScope) Object.assign(filter, req.userScope);
     Test.findOne(filter)
       .then(
         (product) => {
@@ -115,8 +112,7 @@ TestRouter
     const { getHospitalId } = authenticate;
     const hospitalId = getHospitalId(req.user);
     const filter = { _id: req.params.productId, hospitalId };
-    // Lab staff can update any test in their hospital (not just ones they personally created).
-    if (req.userScope && req.user.role !== 'LAB') Object.assign(filter, req.userScope);
+    // Tests are a shared hospital-wide catalog, so any hospital staff can update them.
     const { user: _u, hospitalId: _h, ...safeBody } = req.body;
     Test.findOneAndUpdate(
       filter,
@@ -140,7 +136,6 @@ TestRouter
     const { getHospitalId } = authenticate;
     const hospitalId = getHospitalId(req.user);
     const filter = { _id: req.params.productId, hospitalId };
-    if (req.userScope) Object.assign(filter, req.userScope);
     Test.findOneAndRemove(filter)
       .then(
         (resp) => {
