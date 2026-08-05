@@ -1,0 +1,232 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var app = require('../app');
+var debug = require('debug')('od:server');
+var http = require('http');
+const https = require('https');
+const socketIo = require('socket.io');
+// const {emitComplaintCount, emitComplaints} = require('../src/complaint/complaintCount'); // Adjust the path to where your emitProductCount.js file is located
+const verifyUser = require("../middlewares/authenticate").verifyUser;
+
+const config = require("../config.js");
+const jwt = require('jsonwebtoken');
+var User = require("../src/users/userModel");
+const fs = require('fs');
+const httpsOptions = {
+  key: fs.readFileSync(__dirname + '/jheend.key'),
+  cert: fs.readFileSync(__dirname + '/jhengservices_com.crt'),
+  ca: fs.readFileSync(__dirname + '/jhengservices_com.ca-bundle'),
+  // requestCert: true,
+  // rejectUnauthorized: false
+};
+// const cert = fs.readFileSync('./jhengservices_com.crt');
+// const ca = fs.readFileSync('./jhengservices_com.ca-bundle');
+// const key = fs.readFileSync('./jheend.key');
+/**
+ * Get port from environment and store in Express.
+ */
+
+var port = normalizePort(process.env.PORT || '5800');
+app.set('port', port);
+app.set('secPort', port + 443);
+
+/**
+ * Create HTTP server.
+ */
+
+var server = http.createServer(app);
+
+const io = socketIo(server, {
+ cors: {
+   origin: "*",
+   methods: ["GET", "POST"]
+ }
+});
+
+
+/**
+ * Listen on provided port, on all network interfaces.
+ */
+
+server.listen(port);
+server.on('error', onError);
+server.on('listening', onListening);
+
+
+/**
+ * Create HTTPS server.
+ */
+
+const secureServer = https.createServer(httpsOptions, app);
+
+/**
+* Listen on provided port, on all network interfaces.
+*/
+
+secureServer.listen(app.get('secPort'), () => {
+  console.log('Server listening on port ', app.get('secPort'));
+});
+secureServer.on('error', onError);
+secureServer.on('listening', onListening);
+// socket io
+
+// // Wrapper function to adapt the Express middleware for use with Socket.IO
+// function wrapExpressMiddlewareForSocketIO(socket, next) {
+//   // Create a mock request object based on the handshake
+//   const request = {
+//     headers: socket.handshake.headers,
+//     query: socket.handshake.query
+//   };
+  
+//   // Create a mock response object with a minimal implementation
+//   const response = {
+//     status: () => response,
+//     send: (status, message) => next(new Error(message)),
+//     end: () => next()
+//   };
+  
+//   // Call the verifyUser middleware, adapted for Socket.IO
+//   console.log("verifyUser(request, response)", verifyUser(request, response));
+//     // Store the user details in the socket object
+//     socket.user = request.user;
+// }
+
+// Use the wrapper function in the Socket.IO middleware
+// io.use((socket, next) => {
+//   wrapExpressMiddlewareForSocketIO(socket, next);
+// });
+
+// // Socket.IO authentication middleware
+// io.use(function(socket, next) {
+//   if (socket.handshake.auth && socket.handshake.auth.token) {
+//     // Verify the JWT token
+//     jwt.verify(socket.handshake.auth.token, config.secretKey, function(err, decoded) {
+//       if (err) {
+//         // Token verification failed
+//         return next(new Error('Authentication error'));
+//       }
+
+//       // Token verification succeeded, attach the decoded payload to the socket
+//       socket.decoded = decoded;
+
+//       // Continue with the connection
+    
+//       next();
+//     });
+//   } else {
+//     // No token provided in the auth field
+//     next(new Error('Authentication error'));
+//   }
+// });
+// io.on('connection', (socket) => {
+//   const user = socket.decoded;
+//   let userFound;
+//   console.log('a user connected-------------------------',user);
+
+//   User.findById(user._id, (err, user) => {
+//     if (err) {
+//       console.error('Error fetching user information:', err);
+//       // Handle the error as needed
+//     } else {
+//       if (user) {
+//         userFound= user
+//         emitComplaintCount(user)
+//         // User found, you can now access user information
+     
+
+//         // Your Socket.IO logic here
+//       } else {
+//         console.error('User not found');
+//         // Handle the case where the user is not found
+//       }
+//     }
+//   });
+  // //get realtime complaints
+  // socket.on('complaint', (complaintObj) => {
+  //   console.log('complaint emited***********' , complaintObj);
+  //   if(userFound){
+  //   emitComplaints(complaintObj,userFound)
+  //   }
+
+  // });
+
+  // totalComplaints
+  // socket.on('totalComplaintCount', (totalComplaintCount) => {
+  //   console.log('totalComplaintCount:  inside socket on' + totalComplaintCount);
+  //  // io.emit('message', getcomplaint);
+  // });
+  // socket.on('disconnect', () => {
+  //   console.log('user disconnected');
+  // });
+// });
+
+
+/**
+ * Normalize a port into a number, string, or false.
+ */
+
+function normalizePort(val) {
+  var port = parseInt(val, 10);
+
+  if (isNaN(port)) {
+    // named pipe
+    return val;
+  }
+
+  if (port >= 0) {
+    // port number
+    return port;
+  }
+
+  return false;
+}
+
+/**
+ * Event listener for HTTP server "error" event.
+ */
+
+function onError(error) {
+  if (error.syscall !== 'listen') {
+    throw error;
+  }
+
+  var bind = typeof port === 'string'
+    ? 'Pipe ' + port
+    : 'Port ' + port;
+
+  // handle specific listen errors with friendly messages
+  switch (error.code) {
+    case 'EACCES':
+      console.error(bind + ' requires elevated privileges');
+      process.exit(1);
+      break;
+    case 'EADDRINUSE':
+      console.error(bind + ' is already in use');
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+}
+
+/**
+ * Event listener for HTTP server "listening" event.
+ */
+
+function onListening() {
+  var addr = server.address();
+  var bind = typeof addr === 'string'
+    ? 'pipe ' + addr
+    : 'port ' + addr.port;
+  debug('Listening on ' + bind);
+}
+
+
+
+    // Export the server and the io instance
+   
+module.exports  = { server, io };
