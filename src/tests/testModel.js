@@ -16,6 +16,10 @@ const testSchema = new Schema({
       type: String,
       default: ''
      },
+     fee:{
+      type: Number,
+      default: 0
+     },
       description:{
         type: String,
         default: ''
