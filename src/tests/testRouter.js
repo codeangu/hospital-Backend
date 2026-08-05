@@ -29,6 +29,7 @@ TestRouter
      try {
     console.log("find inside get patients: ", find);
     Test.find(find)
+      .populate('user', 'name')
 
       .then(
         (Test) => {
@@ -89,6 +90,7 @@ TestRouter
     const hospitalId = getHospitalId(req.user);
     const filter = { _id: req.params.productId, hospitalId };
     Test.findOne(filter)
+      .populate('user', 'name')
       .then(
         (product) => {
           if (!product) {
@@ -119,6 +121,7 @@ TestRouter
       { $set: safeBody },
       { new: true }
     )
+      .populate('user', 'name')
       .then(
         (product) => {
           if (!product) {
