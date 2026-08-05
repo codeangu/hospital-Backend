@@ -83,6 +83,7 @@ const visitSchema = new Schema({
       treatments:[],
       tests:[],
       testsSuggested: [],
+      labResults: [],
       nextDate:{
         type: Date,
         default:''  

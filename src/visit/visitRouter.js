@@ -150,6 +150,44 @@ console.log("find inside get last visit: ", find);
   }
 });
 
+// Lab staff submit their result/notes for the test(s) sent to their lab on a visit.
+// Scoped strictly: only LAB role, only their own hospital, only visits where a
+// test for their lab is actually AWAITING_TEST, and only appends to labResults
+// (no other visit fields are touched).
+visitRouter
+  .route("/:productId/lab-result")
+  .options(cors.corsWithOptions, (req, res) => {
+    res.sendStatus(200);
+  })
+  .put(cors.corsWithOptions, verifyUser, async (req, res, next) => {
+    if (req.user.role !== 'LAB') {
+      return res.status(403).json({ success: false, message: "Only lab accounts can submit test results" });
+    }
+    const { getHospitalId } = authenticate;
+    const hospitalId = getHospitalId(req.user);
+    const filter = {
+      _id: req.params.productId,
+      hospitalId,
+      checkupStatus: 'AWAITING_TEST',
+      'testsSuggested.category': req.user.name
+    };
+    try {
+      const visit = await Visit.findOneAndUpdate(
+        filter,
+        { $push: { labResults: { category: req.user.name, result: req.body.result || '', submittedBy: req.user._id, submittedAt: new Date() } } },
+        { new: true }
+      ).populate('patient');
+      if (!visit) {
+        return res.status(404).json({ success: false, message: "Test request not found" });
+      }
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.json(visit);
+    } catch (err) {
+      next(err);
+    }
+  });
+
 
 
 
