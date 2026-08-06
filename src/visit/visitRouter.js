@@ -172,14 +172,21 @@ visitRouter
       'testsSuggested.category': req.user.name
     };
     try {
-      const visit = await Visit.findOneAndUpdate(
-        filter,
-        { $push: { labResults: { category: req.user.name, result: req.body.result || '', submittedBy: req.user._id, submittedAt: new Date() } } },
-        { new: true }
-      ).populate('patient');
+      const visit = await Visit.findOne(filter);
       if (!visit) {
         return res.status(404).json({ success: false, message: "Test request not found" });
       }
+      const existing = (visit.labResults || []).find(r => r.category === req.user.name);
+      if (existing) {
+        existing.result = req.body.result || '';
+        existing.submittedBy = req.user._id;
+        existing.submittedAt = new Date();
+      } else {
+        visit.labResults = visit.labResults || [];
+        visit.labResults.push({ category: req.user.name, result: req.body.result || '', submittedBy: req.user._id, submittedAt: new Date() });
+      }
+      await visit.save();
+      await visit.populate('patient');
       res.statusCode = 200;
       res.setHeader("Content-Type", "application/json");
       res.json(visit);
