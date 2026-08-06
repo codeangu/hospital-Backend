@@ -150,10 +150,11 @@ console.log("find inside get last visit: ", find);
   }
 });
 
-// Lab staff submit their result/notes for the test(s) sent to their lab on a visit.
+// Lab staff submit/edit their result/notes for the test(s) sent to their lab on a visit.
 // Scoped strictly: only LAB role, only their own hospital, only visits where a
-// test for their lab is actually AWAITING_TEST, and only appends to labResults
-// (no other visit fields are touched).
+// test for their lab was sent, and only touches labResults (no other visit fields).
+// Not restricted to checkupStatus AWAITING_TEST, since a lab must still be able to
+// edit their result after the doctor has resumed/completed the checkup.
 visitRouter
   .route("/:productId/lab-result")
   .options(cors.corsWithOptions, (req, res) => {
@@ -168,7 +169,6 @@ visitRouter
     const filter = {
       _id: req.params.productId,
       hospitalId,
-      checkupStatus: 'AWAITING_TEST',
       'testsSuggested.category': req.user.name
     };
     try {
