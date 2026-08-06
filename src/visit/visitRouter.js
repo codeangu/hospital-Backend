@@ -150,9 +150,11 @@ console.log("find inside get last visit: ", find);
   }
 });
 
-// Lab staff submit/edit their result/notes for the test(s) sent to their lab on a visit.
-// Scoped strictly: only LAB role, only their own hospital, only visits where a
-// test for their lab was sent, and only touches labResults (no other visit fields).
+// Lab staff submit/edit their result/notes for ONE specific test sent to their lab
+// on a visit (a visit can carry several tests for the same lab; each is tracked and
+// completed independently — completing one must not affect the others).
+// Scoped strictly: only LAB role, only their own hospital, only a testId that is
+// actually one of this visit's testsSuggested and belongs to this lab.
 // Not restricted to checkupStatus AWAITING_TEST, since a lab must still be able to
 // edit their result after the doctor has resumed/completed the checkup.
 visitRouter
@@ -164,26 +166,30 @@ visitRouter
     if (req.user.role !== 'LAB') {
       return res.status(403).json({ success: false, message: "Only lab accounts can submit test results" });
     }
+    const { testId, result } = req.body;
+    if (!testId) {
+      return res.status(400).json({ success: false, message: "testId is required" });
+    }
     const { getHospitalId } = authenticate;
     const hospitalId = getHospitalId(req.user);
     const filter = {
       _id: req.params.productId,
       hospitalId,
-      'testsSuggested.category': req.user.name
+      testsSuggested: { $elemMatch: { _id: testId, category: req.user.name } }
     };
     try {
       const visit = await Visit.findOne(filter);
       if (!visit) {
-        return res.status(404).json({ success: false, message: "Test request not found" });
+        return res.status(404).json({ success: false, message: "Test not found for your lab on this visit" });
       }
-      const existing = (visit.labResults || []).find(r => r.category === req.user.name);
+      const existing = (visit.labResults || []).find(r => String(r.testId) === String(testId));
       if (existing) {
-        existing.result = req.body.result || '';
+        existing.result = result || '';
         existing.submittedBy = req.user._id;
         existing.submittedAt = new Date();
       } else {
         visit.labResults = visit.labResults || [];
-        visit.labResults.push({ category: req.user.name, result: req.body.result || '', submittedBy: req.user._id, submittedAt: new Date() });
+        visit.labResults.push({ testId, category: req.user.name, result: result || '', submittedBy: req.user._id, submittedAt: new Date() });
       }
       // labResults is an untyped (Mixed) array, so Mongoose can't auto-detect
       // in-place mutations to its elements — must mark it dirty explicitly.
