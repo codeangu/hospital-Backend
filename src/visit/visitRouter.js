@@ -185,6 +185,9 @@ visitRouter
         visit.labResults = visit.labResults || [];
         visit.labResults.push({ category: req.user.name, result: req.body.result || '', submittedBy: req.user._id, submittedAt: new Date() });
       }
+      // labResults is an untyped (Mixed) array, so Mongoose can't auto-detect
+      // in-place mutations to its elements — must mark it dirty explicitly.
+      visit.markModified('labResults');
       await visit.save();
       await visit.populate('patient');
       res.statusCode = 200;
