@@ -10,7 +10,8 @@ const whitelist = [
     "https://localhost:3443",
     "https://localhost:4500",
     "http://192.168.100.*",
-    "https://hospital-backend-lmdb.vercel.app"
+    "https://hospital-backend-lmdb.vercel.app",
+    "https://hospital-web-gamma.vercel.app"
 
 ];
 
